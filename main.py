@@ -5,8 +5,9 @@ import os
 import platform
 from modules import *
 from widgets import *
-import cv2, imutils,time
+import cv2,time
 from PySide6.QtGui import QImage, QPixmap
+from PySide6 import QtWidgets
 
 
 os.environ["QT_FONT_DPI"] = "96" # FIX Problem for High DPI and Scale above 100%
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         global widgets
         widgets = self.ui
+        
 
         # USE CUSTOM TITLE BAR | USE AS "False" FOR MAC OR LINUX
         # ///////////////////////////////////////////////////////////////
@@ -46,7 +48,7 @@ class MainWindow(QMainWindow):
 
         # QTableWidget PARAMETERS
         # ///////////////////////////////////////////////////////////////
-        widgets.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
 
         # BUTTONS CLICK
         # ///////////////////////////////////////////////////////////////
@@ -57,6 +59,20 @@ class MainWindow(QMainWindow):
         widgets.btn_widgets.clicked.connect(self.buttonClick)
         widgets.btn_new.clicked.connect(self.buttonClick)
         widgets.btn_save.clicked.connect(self.buttonClick)
+        self.new = QWidget()
+        self.check=False
+        self.images = []
+        self.videos=[]
+        self.vidlist=[]
+        self.i,self.j=0,0
+        self.saveimg=False
+        self.savevid=False
+        widgets.startcamera.clicked.connect(self.start_camera)
+        widgets.imgtable.selectionModel().selectionChanged.connect(self.imgselected)
+        widgets.vidtable.selectionModel().selectionChanged.connect(self.vidselected)
+        widgets.saveimage.clicked.connect(self.save_image)
+        widgets.savevideo.clicked.connect(self.save_video)
+    
  
         # EXTRA LEFT BOX
         def openCloseLeftBox():
@@ -79,7 +95,7 @@ class MainWindow(QMainWindow):
         themeFile = "themes\py_dracula_light.qss"
 
         # SET THEME AND HACKS
-        if useCustomTheme:
+        if useCustomTheme: 
             # LOAD AND APPLY STYLE
             UIFunctions.theme(self, themeFile, True)
 
@@ -90,11 +106,7 @@ class MainWindow(QMainWindow):
         # ///////////////////////////////////////////////////////////////
         widgets.stackedWidget.setCurrentWidget(widgets.home)
         widgets.btn_home.setStyleSheet(UIFunctions.selectMenu(widgets.btn_home.styleSheet()))
-   
 
-    # BUTTONS CLICK
-    # Post here your functions for clicked buttons
-    # ///////////////////////////////////////////////////////////////
     def buttonClick(self):
         # GET BUTTON CLICKED
         btn = self.sender()
@@ -121,30 +133,74 @@ class MainWindow(QMainWindow):
         # PRINT BTN NAME
         print(f'Button "{btnName}" pressed!')
 
+        
+    def start_camera(self):
+        self.check=True
+        self.loadImage()
+    
+    def vidselected(self,selected):
+        if selected.indexes():
+            id=selected.indexes()[0].row()
+            if id<=len(self.videos)-1:
+                for img in self.videos[id]:
+                    cv2.waitKey(1)
+                    widgets.imglabel.setPixmap(QPixmap(QImage(img.data, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888).rgbSwapped())) 
+
+    def imgselected(self,selected):
+        if selected.indexes():
+            id=selected.indexes()[0].row()
+            if id<=len(self.images)-1:self.setPhoto(self.images[id],widgets.imglabel)
+          
+    def save_video(self):
+        self.savevid=True
+        self.start_time = time.time()
+
+    def getimglabel(self,img):
+        imagelabel=QtWidgets.QLabel(self.new)
+        imagelabel.setText("")
+        imagelabel.setScaledContents(True)  
+        pixmap = QPixmap(QImage(img.data, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888).rgbSwapped())
+        imagelabel.setPixmap(pixmap) 
+        return imagelabel
+   
+    def addimgtable(self,img,table,i):
+        item=self.getimglabel(img)
+        table.setCellWidget(i,0,item)
+        table.setRowHeight(i,60)
+        table.setColumnWidth(0,130)
+     
+    def save_image(self):
+        
+        self.saveimg=True
+
+    def setPhoto(self,img,label):
+        pixmap = QPixmap(QImage(img.data, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888).rgbSwapped())
+        label.setPixmap(pixmap) 
 
     def loadImage(self):
-        vid = cv2.VideoCapture(1)
+        vid = cv2.VideoCapture(0)
         while(True):
             img, image = vid.read()
-            self.setPhoto(image)
-            
+            if self.saveimg:
+                self.saveimg=False
+                self.images.append(image)
+                self.addimgtable(image,widgets.imgtable,self.i)
+                self.i=self.i+1
+                
+            if self.savevid:
+                self.vidlist.append(image.copy())
+                if (time.time()-self.start_time) > 2:
+                    self.videos.append(self.vidlist)
+                    self.savevid=False
+                    self.vidlist=[]
+                    self.addimgtable(image,widgets.vidtable,self.j)
+                    self.j=self.j+1
+            self.setPhoto(image,widgets.vidlabel)
+
             key = cv2.waitKey(1) & 0xFF
             if not self.check:break
         cv2.destroyAllWindows
 
-    def setPhoto(self,image):
-        qformat=QImage.Format_Indexed8
-        if len(image.shape)==3:
-            if image.shape[2]==4: qformat= QImage.Format_RGBA888
-            else:qformat= QImage.Format_RGB888
-        img= QImage(image, image.shape[1],image.shape[0],image.strides[0],qformat)
-        img= img.rgbSwapped()
-        widgets.vidlabel.setPixmap(QPixmap.fromImage(img))
-        if self.snapcheck:
-            self.snapcheck=False
-            self.temp=image
-            widgets.imglabel.setPixmap(QPixmap.fromImage(img))
- 
 
     # RESIZE EVENTS
     # ///////////////////////////////////////////////////////////////
@@ -168,4 +224,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon("icon.ico"))
     window = MainWindow()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
