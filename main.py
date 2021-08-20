@@ -6,6 +6,7 @@ from modules import *
 from widgets import *
 from datetime import datetime,date
 import cv2,time,platform,os,sys
+from numpy import asarray
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt,QThread
@@ -79,8 +80,6 @@ class MainWindow(QMainWindow):
         widgets.stackedWidget.setCurrentWidget(widgets.home)
         widgets.btn_home.setStyleSheet(UIFunctions.selectMenu(widgets.btn_home.styleSheet()))
     
-    
-
         self.new = QWidget()
         self.stream = True
         self.show_enhanced = False
@@ -93,13 +92,13 @@ class MainWindow(QMainWindow):
         self.current_test_type = 'morphology'
 
         #self.params = read_yaml()
-        # self.microscopeSW = MicroscopeSW(self.params)
+        #self.microscopeSW = MicroscopeSW(self.params)
         #self.motility_analyzer = MotilityAnalayzer(self.params)
         #self.morphology_analyzer = MorphologyAnalyzer(self.params)
         self.analyzed_image = None
         self.last_selected_item = None
 
-        # Listener(on_press = self.microscopeSW.key_handler).start()
+        #Listener(on_press = self.microscopeSW.key_handler).start()
         self.gui_results_dir = 'gui_results'
         self.saving_dir = os.path.join(self.gui_results_dir, datetime.now().strftime("%H-%M-%S"))
 
@@ -114,17 +113,16 @@ class MainWindow(QMainWindow):
         self.videos=[]
         self.i,self.j=0,0
         self.saveimg=False
-        self.savevid=False
+        self.temp=None
         self.init_gui_logic()
         
-
     def test_type_callback(self, index):
         new_test_type = widgets.testtypebox.itemText(index)
         self.current_test_type = new_test_type
-        self.params['test_type'] = self.current_test_type  
+        #self.params['test_type'] = self.current_test_type  
 
     def start_camera(self):
-        # TODO check if the selected camera index is not working (its camera is not working)
+        #TODO check if the selected camera index is not working (its camera is not working)
         local_camera_index = self.camera_index
         if self.vid : return # return if camera is already started
         self.vid = cv2.VideoCapture(local_camera_index, cv2.CAP_DSHOW)
@@ -138,17 +136,20 @@ class MainWindow(QMainWindow):
 
             if self.recording_start_time:
                 if time.time() - self.recording_start_time < 3 :
-                    self.video_writer.write(cv2.resize(image, self.params['camera']['saving_size']))
+                    self.video_writer.write(cv2.resize(image,(400,400)))
                     image = cv2.putText( image,'recording', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255) )
                 else:
                     self.video_writer.release() 
                     self.recording_start_time = None
                     self.addimgtable(image, widgets.imgtable, self.i)
                     self.i += 1
+            if self.saveimg:self.save_image(image.copy())
+                
+
                     
             
             if self.show_enhanced:
-                image = cv2.enhance(image, self.params['camera']['alpha'], self.params['camera']['gamma'])
+                image = cv2.detailEnhance(image, sigma_s=10, sigma_r=0.15)
             self.setPhoto(image, widgets.vidlabel)
             
             cv2.waitKey(1)
@@ -186,25 +187,27 @@ class MainWindow(QMainWindow):
             item = self.items[id]
             self.last_selected_item = item
             if item[0] == 'image':
-                image = cv2.read_image(item[1])
-                self.setPhoto(image, self.imglabel)
+                image = cv2.imread(item[1])
+                self.setPhoto(image, widgets.imglabel)
             else:
-                image = None
                 cam = cv2.VideoCapture(item[1]) 
-                for _ in range(10):
+                total = int(cam.get(cv2.CAP_PROP_FRAME_COUNT))
+                for d in range(total):
                     ret, frame = cam.read()
-                    if not ret: continue 
-                    image = frame
-                    break
-                if image is not None: self.setPhoto(image, widgets.imglabel)
+                    if not ret: continue
+                    self.setPhoto(frame, widgets.imglabel)
+                    if cv2.waitKey(1) & 0xFF == ord('q'): break
+
         
     def save_video_callback(self):
-        video_path = os.path.join(self.saving_dir, datetime.now().strftime("%m/%d/%Y, %H-%M-%S")) + '.avi'
+        video_path = os.path.join(self.saving_dir, datetime.now().strftime("%H-%M-%S")) + '.avi'
         self.recording_start_time = time.time()
-        self.video_writer = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"MJPG"), \
-self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self.params['camera']['saving_size']))
+        self.video_writer = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"MJPG"), 20,(400,400))
+        #self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self.params['camera']['saving_size']))
         self.items.append(('video', video_path))
-        
+    
+    def save_image_callback(self):
+        self.saveimg=True   
 
     def getimglabel(self,img):
         imagelabel = QtWidgets.QLabel(self.new)
@@ -220,12 +223,14 @@ self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self
         table.setRowHeight(i,100)
         table.setColumnWidth(0,200)
         
-    def save_image_callback(self):
-        image = widgets.vidlabel.grab().toImage()
-        image = qimage2ndarray.rgb_view(image)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image_path = os.path.join(self.saving_dir, datetime.now().strftime("%m/%d/%Y, %H-%M-%S")) + '.jpg'
-        cv2.save_image(image, image_path)
+    def save_image(self,image):
+        #image = widgets.vidlabel.grab().toImage()
+        #image = qimage2ndarray.rgb_view(image)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        self.saveimg=False
+        print(type(image))
+        image_path = os.path.join(self.saving_dir, datetime.now().strftime("%H-%M-%S")) + '.jpg'
+        cv2.imwrite(image_path,image)
         self.addimgtable(image, widgets.imgtable, self.i) 
         self.i += 1
         self.items.append(('image', image_path))
@@ -241,9 +246,6 @@ self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self
         if self.recording: self.save_video()
         try: os.rmdir(self.saving_dir)
         except: pass
-
-    def resetslider(self):
-        widgets.updownslider.setValue(0)
 
     def init_gui_logic(self):
         widgets.testtypebox.addItems(['morphology', 'motility'])
@@ -288,11 +290,12 @@ self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self
 
     def analyze_callback(self):
         if self.last_selected_item is None : return # no image is selected yet
-        image = widgets.imglabel.grab().toImage()
-        image = qimage2ndarray.rgb_view(image)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = widgets.imglabel.grab().toImage
+        #image = qimage2ndarray.rgb_view(image)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = asarray(image)
         if self.last_selected_item[1].endswith('.jpg'):
-            self.analyzed_image = self.morphology_analyzer.analyze(image)
+            #self.analyzed_image = self.morphology_analyzer.analyze(image)
             self.setPhoto(self.analyzed_image, widgets.imglabel)
         else:
             pass # motility
