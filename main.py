@@ -1,9 +1,10 @@
 # IMPORT / GUI AND MODULES AND WIDGETS
 
-from my_utils import *
+#from my_utils import *
 import qimage2ndarray
 from modules import *
 from widgets import *
+from datetime import datetime,date
 import cv2,time,platform,os,sys
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QImage, QPixmap
@@ -31,8 +32,8 @@ class MainWindow(QMainWindow):
 
         # APP NAME
         # ///////////////////////////////////////////////////////////////
-        title = "PyDracula - Modern GUI"
-        description = "PyDracula APP - Theme with colors based on Dracula for Python."
+        title = "text"
+        description = "text"
         # APPLY TEXTS
         self.setWindowTitle(title)
         widgets.titleRightInfo.setText(description)
@@ -91,16 +92,16 @@ class MainWindow(QMainWindow):
         self.recording_start_time = None
         self.current_test_type = 'morphology'
 
-        self.params = read_yaml()
+        #self.params = read_yaml()
         # self.microscopeSW = MicroscopeSW(self.params)
-        self.motility_analyzer = MotilityAnalayzer(self.params)
-        self.morphology_analyzer = MorphologyAnalyzer(self.params)
+        #self.motility_analyzer = MotilityAnalayzer(self.params)
+        #self.morphology_analyzer = MorphologyAnalyzer(self.params)
         self.analyzed_image = None
         self.last_selected_item = None
 
         # Listener(on_press = self.microscopeSW.key_handler).start()
         self.gui_results_dir = 'gui_results'
-        self.saving_dir = os.path.join(self.gui_results_dir, get_datetime())
+        self.saving_dir = os.path.join(self.gui_results_dir, datetime.now().strftime("%H-%M-%S"))
 
         os.makedirs(self.gui_results_dir, exist_ok=True)
         os.makedirs(self.saving_dir, exist_ok = True)
@@ -136,8 +137,8 @@ class MainWindow(QMainWindow):
             # self.microscopeSW.update_image(image)
 
             if self.recording_start_time:
-                if get_time(True)+get_date(True) - self.recording_start_time < 3 :
-                    self.video_writer.write(cv_utils.resize(image, self.params['camera']['saving_size']))
+                if time.time() - self.recording_start_time < 3 :
+                    self.video_writer.write(cv2.resize(image, self.params['camera']['saving_size']))
                     image = cv2.putText( image,'recording', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255) )
                 else:
                     self.video_writer.release() 
@@ -147,7 +148,7 @@ class MainWindow(QMainWindow):
                     
             
             if self.show_enhanced:
-                image = cv_utils.enhance(image, self.params['camera']['alpha'], self.params['camera']['gamma'])
+                image = cv2.enhance(image, self.params['camera']['alpha'], self.params['camera']['gamma'])
             self.setPhoto(image, widgets.vidlabel)
             
             cv2.waitKey(1)
@@ -179,15 +180,13 @@ class MainWindow(QMainWindow):
         print(f'Button "{btnName}" pressed!')
 
     def imgselected(self,selected):
-        
         if selected.indexes():
-
             id=selected.indexes()[0].row()
             if id >= len(self.items): return
             item = self.items[id]
             self.last_selected_item = item
             if item[0] == 'image':
-                image = cv_utils.read_image(item[1])
+                image = cv2.read_image(item[1])
                 self.setPhoto(image, self.imglabel)
             else:
                 image = None
@@ -200,11 +199,12 @@ class MainWindow(QMainWindow):
                 if image is not None: self.setPhoto(image, widgets.imglabel)
         
     def save_video_callback(self):
-        video_path = os.path.join(self.saving_dir, get_datetime()) + '.avi'
-        self.recording_start_time = get_time(timestamp = True) + get_date(timestamp = True)
+        video_path = os.path.join(self.saving_dir, datetime.now().strftime("%m/%d/%Y, %H-%M-%S")) + '.avi'
+        self.recording_start_time = time.time()
         self.video_writer = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"MJPG"), \
-                self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self.params['camera']['saving_size']))
+self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self.params['camera']['saving_size']))
         self.items.append(('video', video_path))
+        
 
     def getimglabel(self,img):
         imagelabel = QtWidgets.QLabel(self.new)
@@ -224,8 +224,8 @@ class MainWindow(QMainWindow):
         image = widgets.vidlabel.grab().toImage()
         image = qimage2ndarray.rgb_view(image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image_path = os.path.join(self.saving_dir, get_datetime()) + '.jpg'
-        cv_utils.save_image(image, image_path)
+        image_path = os.path.join(self.saving_dir, datetime.now().strftime("%m/%d/%Y, %H-%M-%S")) + '.jpg'
+        cv2.save_image(image, image_path)
         self.addimgtable(image, widgets.imgtable, self.i) 
         self.i += 1
         self.items.append(('image', image_path))
