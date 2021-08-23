@@ -75,7 +75,7 @@ class UIFunctions(MainWindow):
 
             # SET MAX WIDTH
             if width == 60:
-                widthExtended = maxExtend
+                widthExtended = 125
             else:
                 widthExtended = standard
 
