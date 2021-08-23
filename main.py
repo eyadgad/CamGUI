@@ -1,12 +1,13 @@
 # IMPORT / GUI AND MODULES AND WIDGETS
 
 #from my_utils import *
+import numpy as np
 import qimage2ndarray
 from modules import *
 from widgets import *
 from datetime import datetime,date
 import cv2,time,platform,os,sys
-from numpy import asarray
+
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt,QThread
@@ -33,8 +34,8 @@ class MainWindow(QMainWindow):
 
         # APP NAME
         # ///////////////////////////////////////////////////////////////
-        title = "text"
-        description = "text"
+        title = "DeltaCare"
+        description = "DeltaCare"
         # APPLY TEXTS
         self.setWindowTitle(title)
         widgets.titleRightInfo.setText(description)
@@ -109,11 +110,12 @@ class MainWindow(QMainWindow):
         #_______________________________________________________________
 
         self.check=False
+        self.inoutvalue=0
+        self.leftrightvalue=0
+        self.leftrightvalue=0
         self.images = []
         self.videos=[]
         self.i,self.j=0,0
-        self.saveimg=False
-        self.temp=None
         self.init_gui_logic()
         
     def test_type_callback(self, index):
@@ -143,8 +145,6 @@ class MainWindow(QMainWindow):
                     self.recording_start_time = None
                     self.addimgtable(image, widgets.imgtable, self.i)
                     self.i += 1
-            if self.saveimg:self.save_image(image.copy())
-                
 
                     
             
@@ -197,41 +197,33 @@ class MainWindow(QMainWindow):
                     if not ret: continue
                     self.setPhoto(frame, widgets.imglabel)
                     if cv2.waitKey(1) & 0xFF == ord('q'): break
-
-        
+   
     def save_video_callback(self):
         video_path = os.path.join(self.saving_dir, datetime.now().strftime("%H-%M-%S")) + '.avi'
         self.recording_start_time = time.time()
         self.video_writer = cv2.VideoWriter(video_path, cv2.VideoWriter_fourcc(*"MJPG"), 20,(400,400))
         #self.params['camera']['saving_fps'], (self.params['camera']['saving_size'], self.params['camera']['saving_size']))
         self.items.append(('video', video_path))
-    
-    def save_image_callback(self):
-        self.saveimg=True   
 
-    def getimglabel(self,img):
+    def getimglabel(self,img,nimg=True):
         imagelabel = QtWidgets.QLabel(self.new)
         imagelabel.setText("")
         imagelabel.setScaledContents(True)  
-        pixmap = QPixmap(QImage(img.data, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888).rgbSwapped())
-        imagelabel.setPixmap(pixmap) 
+        if nimg: img = QImage(img.data, img.shape[1], img.shape[0], img.shape[1]*3, QImage.Format_RGB888).rgbSwapped()
+        imagelabel.setPixmap(QPixmap(img))
         return imagelabel
    
-    def addimgtable(self,img,table,i):
-        item=self.getimglabel(img)
+    def addimgtable(self,img,table,i,nimg=True):
+        item=self.getimglabel(img,nimg)
         table.setCellWidget(i,0,item)
         table.setRowHeight(i,100)
         table.setColumnWidth(0,200)
         
-    def save_image(self,image):
-        #image = widgets.vidlabel.grab().toImage()
-        #image = qimage2ndarray.rgb_view(image)
-        #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        self.saveimg=False
-        print(type(image))
+    def save_image_callback(self):
+        image = widgets.vidlabel.grab().toImage()
         image_path = os.path.join(self.saving_dir, datetime.now().strftime("%H-%M-%S")) + '.jpg'
-        cv2.imwrite(image_path,image)
-        self.addimgtable(image, widgets.imgtable, self.i) 
+        image.save(image_path)
+        self.addimgtable(image, widgets.imgtable, self.i,False) 
         self.i += 1
         self.items.append(('image', image_path))
 
@@ -246,6 +238,63 @@ class MainWindow(QMainWindow):
         if self.recording: self.save_video()
         try: os.rmdir(self.saving_dir)
         except: pass
+
+    def resetslider1(self):widgets.leftrightslider.setValue(0)
+    def resetslider2(self):widgets.updownslider.setValue(0)
+    def resetslider3(self):widgets.zoomslider.setValue(0)
+    def changed_slider1(self):
+        value = widgets.leftrightslider.value()
+        if abs(value-self.leftrightvalue)==10:self.resetslider1()
+        else:self.leftrightvalue=value
+        print("Right/Left Value : ",value)
+    def changed_slider2(self):
+        value = widgets.updownslider.value()
+        if abs(value-self.leftrightvalue)==10:self.resetslider2()
+        else:self.updownvalue=value
+        print("Up/Down Value : ",value)
+    def changed_slider3(self):
+        value = widgets.zoomslider.value()
+        if abs(value-self.leftrightvalue)==10:self.resetslider3()
+        else:self.inoutvalue=value
+        print("Zoom Value : ",value)
+        
+    def analyze_callback(self):
+        if self.last_selected_item is None : return # no image is selected yet
+        #image = widgets.imglabel.grab().toImage
+        #image = qimage2ndarray.rgb_view(image)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        #image = np.asarray(image)
+        if self.last_selected_item[1].endswith('.jpg'):
+            image = cv2.imread(self.last_selected_item[1])
+            #self.analyzed_image = self.morphology_analyzer.analyze(image)
+            #self.setPhoto(self.analyzed_image, widgets.imglabel)
+        else:
+            pass # motility
+
+    def auto_focus_callback(self):
+        return
+        # self.microscopeSW.trigger_thread(self.current_test_type + '_focus')
+     
+    def changed_slider(self,slider,str):
+        value = slider.value()
+        print(str,": ",value)
+
+    def change_camera_callback(self):
+        self.camera_index = 0 if self.camera_index == 1 else 1
+    # RESIZE EVENTS
+    def resizeEvent(self, event):
+        # Update Size Grips
+        UIFunctions.resize_grips(self)
+    # MOUSE CLICK EVENTS
+    def mousePressEvent(self, event):
+        # SET DRAG POS WINDOW
+        self.dragPos = event.globalPos()
+
+        # PRINT MOUSE EVENTS
+        if event.buttons() == Qt.LeftButton:
+            print('Mouse click: LEFT CLICK')
+        if event.buttons() == Qt.RightButton:
+            print('Mouse click: RIGHT CLICK')
 
     def init_gui_logic(self):
         widgets.testtypebox.addItems(['morphology', 'motility'])
@@ -268,67 +317,8 @@ class MainWindow(QMainWindow):
         widgets.leftrightslider.sliderReleased.connect(self.resetslider1)
         widgets.updownslider.sliderReleased.connect(self.resetslider2)
         widgets.zoomslider.sliderReleased.connect(self.resetslider3)
-   
+  
 
-    def resetslider1(self):
-        widgets.leftrightslider.setValue(0)
-    def resetslider2(self):
-        widgets.updownslider.setValue(0)
-    def resetslider3(self):
-        widgets.zoomslider.setValue(0)
-    
-    def changed_slider1(self):
-        value = widgets.leftrightslider.value()
-        print("Right/Left Value : ",value)
-    def changed_slider2(self):
-        value = widgets.updownslider.value()
-        print("Up/Down Value : ",value)
-    def changed_slider3(self):
-        value = widgets.zoomslider.value()
-        print("Zoom Value : ",value)
-        
-
-    def analyze_callback(self):
-        if self.last_selected_item is None : return # no image is selected yet
-        image = widgets.imglabel.grab().toImage
-        #image = qimage2ndarray.rgb_view(image)
-        #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = asarray(image)
-        if self.last_selected_item[1].endswith('.jpg'):
-            #self.analyzed_image = self.morphology_analyzer.analyze(image)
-            self.setPhoto(self.analyzed_image, widgets.imglabel)
-        else:
-            pass # motility
-
-    def auto_focus_callback(self):
-        return
-        # self.microscopeSW.trigger_thread(self.current_test_type + '_focus')
-     
-    def changed_slider(self,slider,str):
-        value = slider.value()
-        print(str,": ",value)
-       
-
-    def change_camera_callback(self):
-        self.camera_index = 0 if self.camera_index == 1 else 1
-
-    # RESIZE EVENTS
-    # ///////////////////////////////////////////////////////////////
-    def resizeEvent(self, event):
-        # Update Size Grips
-        UIFunctions.resize_grips(self)
-
-    # MOUSE CLICK EVENTS
-    # ///////////////////////////////////////////////////////////////
-    def mousePressEvent(self, event):
-        # SET DRAG POS WINDOW
-        self.dragPos = event.globalPos()
-
-        # PRINT MOUSE EVENTS
-        if event.buttons() == Qt.LeftButton:
-            print('Mouse click: LEFT CLICK')
-        if event.buttons() == Qt.RightButton:
-            print('Mouse click: RIGHT CLICK')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
