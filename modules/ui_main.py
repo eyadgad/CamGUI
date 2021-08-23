@@ -896,7 +896,7 @@ class Ui_MainWindow(object):
         self.righttext.setObjectName(u"righttext")
 
         self.testtypebox = QtWidgets.QComboBox(self.home)
-        self.testtypebox.setGeometry(QtCore.QRect(98, 20, 101, 22))
+        self.testtypebox.setGeometry(QtCore.QRect(98, 20, 120, 30))
         self.testtypebox.setObjectName(u"testtypebox")
 
         self.testtypetext = QtWidgets.QLabel(self.home)
@@ -929,10 +929,10 @@ class Ui_MainWindow(object):
         self.imglabel.setObjectName("imglabel")
 
         self.analyze = QtWidgets.QPushButton(self.new_page)
-        self.analyze.setGeometry(QtCore.QRect(400, 400, 111, 41))
+        self.analyze.setGeometry(QtCore.QRect(400, 406, 100, 35))
         self.analyze.setObjectName("analyze")
         self.saveimgbtn = QtWidgets.QPushButton(self.new_page)
-        self.saveimgbtn.setGeometry(QtCore.QRect(640, 400, 111, 41))
+        self.saveimgbtn.setGeometry(QtCore.QRect(640, 406, 100, 35))
         self.saveimgbtn.setObjectName("saveimgbtn")
 
         self.imagetext = QtWidgets.QLabel(self.new_page)
