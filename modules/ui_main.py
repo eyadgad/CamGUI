@@ -995,7 +995,7 @@ class Ui_MainWindow(object):
         self.closeAppBtn.setToolTip(QCoreApplication.translate("MainWindow", u"Close", None))
 #endif // QT_CONFIG(tooltip)
         self.closeAppBtn.setText("")
-        self.creditsLabel.setText(QCoreApplication.translate("MainWindow", u"By: Gad Gad & Eyad Gad", None))
+        self.creditsLabel.setText(QCoreApplication.translate("MainWindow", u"Copyright Edit by G. Gad & E. Gad, 2021", None))
     # retranslateUi
 
         _translate = QtCore.QCoreApplication.translate
