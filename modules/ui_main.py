@@ -802,7 +802,7 @@ class Ui_MainWindow(object):
         self.stackedWidget.addWidget(self.home)
 
         self.vidlabel = QLabel(self.home)
-        self.vidlabel.setGeometry(QtCore.QRect(250, 10, 661, 461))
+        self.vidlabel.setGeometry(QtCore.QRect(280, 10, 880, 580))
         self.vidlabel.setText("")
         #self.vidlabel.setPixmap(QtGui.QPixmap(os.path.join(morphology_images_dir, os.listdir(morphology_images_dir)[0])))
         self.vidlabel.setScaledContents(True)
@@ -895,17 +895,17 @@ class Ui_MainWindow(object):
         self.imgtable.setHorizontalHeaderItem(0, item)
 
         self.imglabel = QLabel(self.widgets)
-        self.imglabel.setGeometry(QtCore.QRect(280, 20, 631, 381))
+        self.imglabel.setGeometry(QtCore.QRect(280, 10, 880, 500))
         self.imglabel.setText("")
         #self.imglabel.setPixmap(QtGui.QPixmap(os.path.join(morphology_test_dir, os.listdir(morphology_test_dir)[0])))
         self.imglabel.setScaledContents(True)
         self.imglabel.setObjectName("imglabel")
 
         self.analyze = QPushButton(self.widgets)
-        self.analyze.setGeometry(QtCore.QRect(400, 406, 100, 35))
+        self.analyze.setGeometry(QtCore.QRect(600, 530, 100, 35))
         self.analyze.setObjectName("analyze")
         self.saveimgbtn = QPushButton(self.widgets)
-        self.saveimgbtn.setGeometry(QtCore.QRect(640, 406, 100, 35))
+        self.saveimgbtn.setGeometry(QtCore.QRect(800, 530, 100, 35))
         self.saveimgbtn.setObjectName("saveimgbtn")
 
         self.imagetext = QLabel(self.widgets)
