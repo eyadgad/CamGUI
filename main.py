@@ -235,17 +235,17 @@ class MainWindow(QMainWindow):
         value = widgets.leftrightslider.value()
         if abs(value-self.leftrightvalue)==10:self.resetslider1()
         else:self.leftrightvalue=value
-        print("Right/Left Value : ",value)
+        #print("Right/Left Value : ",value)
     def changed_slider2(self):
         value = widgets.updownslider.value()
         if abs(value-self.leftrightvalue)==10:self.resetslider2()
         else:self.updownvalue=value
-        print("Up/Down Value : ",value)
+        #print("Up/Down Value : ",value)
     def changed_slider3(self):
         value = widgets.zoomslider.value()
         if abs(value-self.leftrightvalue)==10:self.resetslider3()
         else:self.inoutvalue=value
-        print("Zoom Value : ",value)
+        #print("Zoom Value : ",value)
         
     def analyze_callback(self):
         if self.last_selected_item is None : return # no image is selected yet
